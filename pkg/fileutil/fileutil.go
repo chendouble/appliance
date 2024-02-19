@@ -1,13 +1,17 @@
 package fileutil
 
 import (
+	"bufio"
 	"compress/gzip"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/openshift/appliance/pkg/executer"
+	"github.com/sirupsen/logrus"
+	"github.com/ulikunitz/xz"
 )
 
 const (
@@ -84,8 +88,14 @@ func CopyFile(source, dest string) error {
 
 	return nil
 }
-
 func ExtractCompressedFile(source, target string) (string, error) {
+	if strings.HasSuffix(source, "xz") {
+		return ExtractXzCompressedFile(source, target)
+	} else {
+		return ExtractGzipCompressedFile(source, target)
+	}
+}
+func ExtractGzipCompressedFile(source, target string) (string, error) {
 	reader, err := os.Open(source)
 	if err != nil {
 		return "", err
@@ -99,6 +109,33 @@ func ExtractCompressedFile(source, target string) (string, error) {
 	defer archive.Close()
 
 	target = filepath.Join(target, archive.Name)
+	writer, err := os.Create(target)
+	if err != nil {
+		return "", err
+	}
+	defer writer.Close()
+
+	_, err = io.Copy(writer, archive)
+	return target, err
+}
+
+func ExtractXzCompressedFile(source, target string) (string, error) {
+
+	logrus.Debug(fmt.Sprintf("xz decompress: %s, %s", source, target))
+	reader, err := os.Open(source)
+	if err != nil {
+		return "", err
+	}
+	defer reader.Close()
+
+	archive, err := xz.NewReader(bufio.NewReader(reader))
+	if err != nil {
+		return "", err
+	}
+	// defer archive.Close()
+
+	file := filepath.Base(source)
+	target = filepath.Join(target, file[0:len(file)-3])
 	writer, err := os.Create(target)
 	if err != nil {
 		return "", err

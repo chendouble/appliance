@@ -63,7 +63,7 @@ func GetImageSetTemplateData(applianceConfig *config.ApplianceConfig, blockedIma
 		Operators        string
 	}{
 		Architectures:    config.GetReleaseArchitectureByCPU(applianceConfig.GetCpuArchitecture()),
-		ChannelName:      fmt.Sprintf("%s-%s", channel, toMajorMinor(version)),
+		ChannelName:      fmt.Sprintf("%s", channel),
 		MinVersion:       version,
 		MaxVersion:       version,
 		BlockedImages:    blockedImages,

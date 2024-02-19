@@ -87,13 +87,13 @@ func (i *installer) GetInstallerDownloadURL() (string, error) {
 	}
 	majorVersion := fmt.Sprint(releaseVersion.Segments()[0])
 	cpuArch := i.ApplianceConfig.GetCpuArchitecture()
-
+	installerVersion := fmt.Sprintf("%d.%d.%d", releaseVersion.Segments()[0], releaseVersion.Segments()[1], releaseVersion.Segments()[2])
 	ocpClient := "ocp"
 	if strings.Contains(releaseVersion.String(), "-ec") {
 		ocpClient = "ocp-dev-preview"
 	}
 
-	return fmt.Sprintf(templateInstallerDownloadURL, majorVersion, cpuArch, ocpClient, releaseVersion), nil
+	return fmt.Sprintf(templateInstallerDownloadURL, majorVersion, cpuArch, ocpClient, installerVersion), nil
 }
 
 func (i *installer) downloadInstallerBinary() (string, error) {
