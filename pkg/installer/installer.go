@@ -86,8 +86,8 @@ func (i *installer) GetInstallerDownloadURL() (string, error) {
 	}
 	majorVersion := fmt.Sprint(releaseVersion.Segments()[0])
 	cpuArch := i.ApplianceConfig.GetCpuArchitecture()
-
-	return fmt.Sprintf(templateInstallerDownloadURL, majorVersion, cpuArch, releaseVersion), nil
+	installerVersion := fmt.Sprintf("%d.%d.%d", releaseVersion.Segments()[0], releaseVersion.Segments()[1], releaseVersion.Segments()[2])
+	return fmt.Sprintf(templateInstallerDownloadURL, majorVersion, cpuArch, installerVersion), nil
 }
 
 func (i *installer) downloadInstallerBinary() (string, error) {

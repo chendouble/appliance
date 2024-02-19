@@ -38,7 +38,7 @@ const (
 	templateGetImage     = "oc adm release info --image-for=%s --insecure=%t %s"
 	templateImageExtract = "oc image extract --path %s:%s --confirm %s"
 	ocMirrorAndUpload    = "oc mirror --config=%s docker://127.0.0.1:%d --dir %s --dest-use-http"
-	ocAdmReleaseInfo     = "oc adm release info quay.io/openshift-release-dev/ocp-release:%s-%s -o json"
+	ocAdmReleaseInfo     = "oc adm release info s100.xpie.cn/xap/okd/release:%s-%s -o json"
 	templateExtractCmd   = "oc adm release extract --command=%s --to=%s %s"
 )
 
@@ -125,6 +125,16 @@ func (r *release) ExtractFile(image string, filename string) (string, error) {
 	return path, err
 }
 
+func (r *release) ExtractCommand(command string, dest string) (string, error) {
+	cmd := fmt.Sprintf(templateExtractCmd, command, dest, *r.ApplianceConfig.Config.OcpRelease.URL)
+	logrus.Debugf("extracting %s to %s, %s", command, dest, cmd)
+	stdout, err := r.execute(r.ApplianceConfig.Config.PullSecret, cmd)
+	if err != nil {
+		return "", err
+	}
+	return stdout, nil
+}
+
 func (r *release) GetImageFromRelease(imageName string) (string, error) {
 	cmd := fmt.Sprintf(templateGetImage, imageName, true, swag.StringValue(r.ApplianceConfig.Config.OcpRelease.URL))
 
@@ -153,16 +163,6 @@ func (r *release) extractFileFromImage(image, file, outputDir string) (string, e
 	}
 
 	return p, nil
-}
-
-func (r *release) ExtractCommand(command string, dest string) (string, error) {
-	cmd := fmt.Sprintf(templateExtractCmd, command, dest, *r.ApplianceConfig.Config.OcpRelease.URL)
-	logrus.Debugf("extracting %s to %s, %s", command, dest, cmd)
-	stdout, err := r.execute(r.ApplianceConfig.Config.PullSecret, cmd)
-	if err != nil {
-		return "", err
-	}
-	return stdout, nil
 }
 
 func (r *release) execute(pullSecret, command string) (string, error) {

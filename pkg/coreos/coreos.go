@@ -3,6 +3,9 @@ package coreos
 import (
 	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
+
 	"github.com/cavaliergopher/grab/v3"
 	"github.com/itchyny/gojq"
 	"github.com/openshift/appliance/pkg/asset/config"
@@ -10,8 +13,6 @@ import (
 	"github.com/openshift/appliance/pkg/release"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"os"
-	"path/filepath"
 )
 
 const (
@@ -19,13 +20,12 @@ const (
 	machineOsImageName      = "machine-os-images"
 	coreOsFileName          = "coreos/coreos-%s.iso"
 	coreOsStream            = "coreos/coreos-stream.json"
-	coreOsDiskImageUrlQuery = ".architectures.x86_64.artifacts.metal.formats[\"raw.gz\"].disk.location"
-
-	CoreOsDiskImageGz = "coreos.tar.gz"
+	coreOsDiskImageUrlQuery = ".architectures.x86_64.artifacts.metal.formats as $a | [$a[\"raw.xz\"], $a[\"raw.gz\"]] | map(select(. !=null )) | .[].disk.location"
 )
 
 type CoreOS interface {
-	DownloadDiskImage() (string, error)
+	DownloadDiskImage(urlStr string) (string, error)
+	DownloadDiskImageUrl() (string, error)
 	DownloadISO() (string, error)
 	EmbedIgnition(ignition []byte, isoPath string) error
 	FetchCoreOSStream() (map[string]any, error)
@@ -59,29 +59,38 @@ func NewCoreOS(config CoreOSConfig) CoreOS {
 	}
 }
 
-func (c *coreos) DownloadDiskImage() (string, error) {
+func (c *coreos) DownloadDiskImage(urlStr string) (string, error) {
+
+	logrus.Debug(urlStr)
+	compressed := filepath.Join(c.EnvConfig.TempDir, filepath.Base(urlStr))
+	_, err := grab.Get(compressed, urlStr)
+	if err != nil {
+		return "", err
+	}
+
+	return compressed, nil
+}
+func (c *coreos) DownloadDiskImageUrl() (string, error) {
 	coreosStream, err := c.FetchCoreOSStream()
 	if err != nil {
 		return "", err
 	}
+	logrus.Debug(coreOsDiskImageUrlQuery)
 	query, err := gojq.Parse(coreOsDiskImageUrlQuery)
 	if err != nil {
 		return "", err
 	}
+	logrus.Debug(query)
 	iter := query.Run(coreosStream)
 	v, ok := iter.Next()
 	if !ok {
 		return "", err
 	}
 
+	logrus.Debug(v)
 	rawGzUrl := v.(string)
-	compressed := filepath.Join(c.EnvConfig.TempDir, CoreOsDiskImageGz)
-	_, err = grab.Get(compressed, rawGzUrl)
-	if err != nil {
-		return "", err
-	}
 
-	return compressed, nil
+	return rawGzUrl, nil
 }
 
 func (c *coreos) DownloadISO() (string, error) {
@@ -127,6 +136,6 @@ func (c *coreos) FetchCoreOSStream() (map[string]any, error) {
 	if err = json.Unmarshal(file, &m); err != nil {
 		return nil, errors.Wrap(err, "failed to parse CoreOS stream metadata")
 	}
-
+	// logrus.Debug(fmt.Sprintf("%s, %s", path, string(file)))
 	return m, nil
 }

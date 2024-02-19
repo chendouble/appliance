@@ -147,7 +147,7 @@ stopLocalRegistry: %t
 		applianceConfigTemplate,
 		types.ApplianceConfigApiVersion, graph.ReleaseChannelStable, CpuArchitectureX86,
 		MinDiskSize, consts.RegistryImage, RegistryMinPort, RegistryMaxPort, consts.RegistryPort,
-			consts.EnableDefaultSources, consts.StopLocalRegistry)
+		consts.EnableDefaultSources, consts.StopLocalRegistry)
 
 	return nil
 }
@@ -218,12 +218,18 @@ func (a *ApplianceConfig) Load(f asset.FileFetcher) (bool, error) {
 	}
 	config.OcpRelease.CpuArchitecture = swag.String(cpuArch)
 
-	releaseImage, releaseVersion, err = a.getRelease()
-	if err != nil {
-		return false, err
+	if config.OcpRelease.URL == nil {
+		releaseImage, releaseVersion, err = a.getRelease()
+		if err != nil {
+			return false, err
+		}
+		config.OcpRelease.URL = &releaseImage
+		config.OcpRelease.Version = releaseVersion
+	} else {
+		releaseImage = *config.OcpRelease.URL
+		releaseVersion = config.OcpRelease.Version
+		logrus.Debug(fmt.Sprintf("Payload: %s, %s", releaseImage, releaseVersion))
 	}
-	config.OcpRelease.URL = &releaseImage
-	config.OcpRelease.Version = releaseVersion
 
 	if config.ImageRegistry == nil {
 		config.ImageRegistry = &types.ImageRegistry{

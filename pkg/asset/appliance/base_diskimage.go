@@ -2,6 +2,7 @@ package appliance
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/openshift/appliance/pkg/asset/config"
 	"github.com/openshift/appliance/pkg/consts"
@@ -48,14 +49,20 @@ func (a *BaseDiskImage) Generate(dependencies asset.Parents) error {
 		"Failed to download appliance base disk image",
 		envConfig,
 	)
-	spinner.FileToMonitor = coreos.CoreOsDiskImageGz
+
 	coreOSConfig := coreos.CoreOSConfig{
 		ApplianceConfig: applianceConfig,
 		EnvConfig:       envConfig,
 	}
 
 	c := coreos.NewCoreOS(coreOSConfig)
-	compressed, err := c.DownloadDiskImage()
+	urlStr, err := c.DownloadDiskImageUrl()
+	if err != nil {
+		return err
+	}
+
+	spinner.FileToMonitor = filepath.Base(urlStr)
+	compressed, err := c.DownloadDiskImage(urlStr)
 	if err != nil {
 		return log.StopSpinner(spinner, err)
 	}
