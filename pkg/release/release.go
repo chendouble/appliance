@@ -38,7 +38,7 @@ const (
 	templateGetImage     = "oc adm release info --image-for=%s --insecure=%t %s"
 	templateImageExtract = "oc image extract --path %s:%s --confirm %s"
 	ocMirrorAndUpload    = "oc mirror --config=%s docker://127.0.0.1:%d --dir %s --dest-use-http"
-	ocAdmReleaseInfo     = "oc adm release info s100.xpie.cn/xap/okd/release:%s-%s -o json"
+	ocAdmReleaseInfo     = "oc adm release info %s -o json"
 	templateExtractCmd   = "oc adm release extract --command=%s --to=%s %s"
 )
 
@@ -304,10 +304,15 @@ func (r *release) generateBlockedImagesList() (string, error) {
 	var releaseInfo map[string]any
 	var result strings.Builder
 
+	// cmd := fmt.Sprintf(
+	// 	ocAdmReleaseInfo,
+	// 	fmt.Sprintf("s100.xpie.cn/xap/okd/release:%s-%s",
+	// 		r.ApplianceConfig.Config.OcpRelease.Version,
+	// 		swag.StringValue(r.ApplianceConfig.Config.OcpRelease.CpuArchitecture)),
+	// )
 	cmd := fmt.Sprintf(
 		ocAdmReleaseInfo,
-		r.ApplianceConfig.Config.OcpRelease.Version,
-		swag.StringValue(r.ApplianceConfig.Config.OcpRelease.CpuArchitecture),
+		swag.StringValue(r.ApplianceConfig.Config.OcpRelease.URL),
 	)
 
 	out, err := r.execute(r.ApplianceConfig.Config.PullSecret, cmd)
